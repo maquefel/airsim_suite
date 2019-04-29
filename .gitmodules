@@ -1,0 +1,18 @@
+[submodule "AirSim"]
+	path = AirSim
+	url = https://github.com/Microsoft/AirSim.git
+[submodule "rpclib"]
+	path = rpclib
+	url = https://github.com/rpclib/rpclib.git
+[submodule "llvm"]
+	path = llvm
+	url = https://github.com/llvm-mirror/llvm.git
+[submodule "libcxx"]
+	path = libcxx
+	url = https://github.com/llvm-mirror/libcxx.git
+[submodule "libcxxabi"]
+	path = libcxxabi
+	url = https://github.com/llvm-mirror/libcxxabi.git
+[submodule "eigen"]
+	path = eigen
+	url = https://github.com/eigenteam/eigen-git-mirror.git
