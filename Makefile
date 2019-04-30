@@ -22,19 +22,20 @@ world: \
 .build-rpclib \
 .build-eigen \
 .build-airsim \
+.build-plugin
 
 # -- eigen
 
 .PHONY: .build-eigen
 
 
-AirSim/AirLib/deps: AirSim
+AirSim/AirLib/deps/eigen3: AirSim
 	-[ ! -d $@ ] && mkdir -p $@
 
-AirSim/AirLib/deps/eigen3: eigen | AirSim/AirLib/deps
-	ln -rs $< $@
+AirSim/AirLib/deps/eigen3/Eigen: eigen | AirSim/AirLib/deps/eigen3
+	cp -r eigen/Eigen AirSim/AirLib/deps/eigen3
 
-.build-eigen: AirSim/AirLib/deps/eigen3
+.build-eigen: AirSim/AirLib/deps/eigen3/Eigen
 
 # --- rpclib
 
@@ -105,3 +106,24 @@ build/airsim/Makefile:      | build/airsim
 
 clean::
 	-[ -d "build/airsim" ] && rm -rf build/airsim
+
+# --- plugin
+
+.PHONY: .build-plugin
+
+.build-plugin: .build-airsim
+	mkdir -p AirSim/AirLib/lib/x64/Debug
+	mkdir -p AirSim/AirLib/deps/rpclib/lib
+	mkdir -p AirSim/AirLib/deps/MavLinkCom/lib
+	cp build/airsim/output/lib/libAirLib.a AirSim/AirLib/lib
+	cp build/airsim/output/lib/libMavLinkCom.a AirSim/AirLib/deps/MavLinkCom/lib
+	cp build/airsim/output/lib/librpc.a AirSim/AirLib/deps/rpclib/lib/librpc.a
+	rsync -a --delete build/airsim/output/lib/ AirSim/AirLib/lib/x64/Debug
+	rsync -a --delete AirSim/external/rpclib/rpclib-2.2.1/include AirSim/AirLib/deps/rpclib
+	rsync -a --delete AirSim/MavLinkCom/include AirSim/AirLib/deps/MavLinkCom
+	rsync -aLK --delete AirSim/AirLib AirSim/Unreal/Plugins/AirSim/Source
+	AirSim/Unreal/Environments/Blocks/clean.sh
+	mkdir -p AirSim/Unreal/Environments/Blocks/Plugins
+	rsync -a --delete AirSim/Unreal/Plugins/AirSim AirSim/Unreal/Environments/Blocks/Plugins
+
+# mono UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool.exe Blocks Development Linux -project="AirSim/Unreal/Environments/Blocks/Blocks.uproject" -editorrecompile -progress -verbose -NoHotReloadFromIDE
