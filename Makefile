@@ -5,8 +5,8 @@
 
 export SHELL = /bin/bash
 
-C_COMPILER="clang-5.0"
-COMPILER="clang++-5.0"
+C_COMPILER="clang-8"
+COMPILER="clang++-8"
 MAKEOPTS="-j9"
 
 all:    world
@@ -67,8 +67,6 @@ build/llvm/Makefile:	| build/llvm
 	cmake \
 	-DCMAKE_C_COMPILER=${C_COMPILER} \
 	-DCMAKE_CXX_COMPILER=${COMPILER} \
-	-LIBCXX_ENABLE_EXPERIMENTAL_LIBRARY=OFF \
-	-DLIBCXX_INSTALL_EXPERIMENTAL_LIBRARY=OFF \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DCMAKE_INSTALL_PREFIX=./output ../../llvm \
 	)
@@ -78,7 +76,8 @@ build/llvm/Makefile:	| build/llvm
 	make -C build/llvm VERBOSE=1 ${MAKEOPTS} install-libcxx
 	make -C build/llvm VERBOSE=1 ${MAKEOPTS} install-libcxxabi
 	mkdir -p AirSim/llvm-build/output/include/c++
-	-[ ! -L AirSim/llvm-build/output/include/c++/v1 ] && ln -rs build/llvm/output/include/c++/v1 AirSim/llvm-build/output/include/c++/
+	-[ ! -L AirSim/llvm-build/output/include/c++ ] && ln -rs build/llvm/output/include/c++/v1 AirSim/llvm-build/output/include/c++/
+	-[ ! -L AirSim/llvm-build/output/lib ] && ln -rs build/llvm/output/lib AirSim/llvm-build/output/lib
 
 clean::
 	-[ -d "build/llvm" ] && rm -rf build/llvm
@@ -92,26 +91,38 @@ build/airsim:       | build
 
 build/airsim/Makefile:      | build/airsim
 	(cd build/airsim && \
-	CC="clang-5.0" \
-	CXX="clang++-5.0" \
+	CC="${C_COMPILER}" \
+	CXX="${COMPILER}" \
 	cmake -G "Unix Makefiles" \
-	-DCMAKE_CXX_FLAGS="-I${CURDIR}/eigen/ -I${CURDIR}/rpclib/include/ -stdlib=libc++" \
+	-DCMAKE_CXX_FLAGS="-I${CURDIR}/eigen/ -I${CURDIR}/rpclib/include/ -stdlib=libc++ -std=c++17" \
+	-DLLVM_DIR="${CURDIR}/build/llvm/lib/cmake/llvm/" \
 	-DCMAKE_INSTALL_PREFIX=/usr \
 	-DCMAKE_BUILD_TYPE=Debug \
 	../../AirSim/cmake \
 	)
 
-.build-airsim:    .build-llvm build/airsim/Makefile 
+.build-airsim:    build/airsim/Makefile 
 	make -C build/airsim VERBOSE=1 ${MAKEOPTS}
 
 clean::
 	-[ -d "build/airsim" ] && rm -rf build/airsim
 
+# --- assets
+
+AirSim/Unreal/Plugins/AirSim/Content/VehicleAdv/SUV:
+	mkdir -p $@
+
+car_assets.zip:
+	wget https://github.com/Microsoft/AirSim/releases/download/v1.2.0/car_assets.zip
+
+AirSim/Unreal/Plugins/AirSim/Content/VehicleAdv/SUV/v1.2.0: car_assets.zip | AirSim/Unreal/Plugins/AirSim/Content/VehicleAdv/SUV
+	unzip car_assets.zip -d AirSim/Unreal/Plugins/AirSim/Content/VehicleAdv
+
 # --- plugin
 
 .PHONY: .build-plugin
 
-.build-plugin: .build-airsim
+.build-plugin: AirSim/Unreal/Plugins/AirSim/Content/VehicleAdv/SUV/v1.2.0 .build-airsim 
 	mkdir -p AirSim/AirLib/lib/x64/Debug
 	mkdir -p AirSim/AirLib/deps/rpclib/lib
 	mkdir -p AirSim/AirLib/deps/MavLinkCom/lib
